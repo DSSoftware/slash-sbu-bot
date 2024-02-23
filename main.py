@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 
 from utils.config.config import Config, ConfigHandler
 from utils.database.connection import DBConnection
+from utils.webserver.api_handler import APIHandler
 
 from components.join_buttons import JoinButtons
 
@@ -25,6 +26,7 @@ load_dotenv()
 asyncio.run(ConfigHandler().load_config())
 
 asyncio.run(DBConnection().connect_db())
+asyncio.run(APIHandler().start())
 
 from utils.handlers import is_warn, handle_warn, is_bridge_message, handle_tatsu
 from utils.triggers.triggers import TriggersFileHandler
@@ -166,7 +168,6 @@ async def on_message(event: hikari.GuildMessageCreateEvent) -> None:
     if TriggersFileHandler().is_trigger(event.message.content):
         await TriggersFileHandler().handle_trigger(event, ConfigHandler().get_config())
 
-
 if __name__ == "__main__":
     if os.name != "nt":
         import uvloop
@@ -174,5 +175,6 @@ if __name__ == "__main__":
         uvloop.install()
 
     bot.run(asyncio_debug=True)
+    asyncio.run(APIHandler().stop())
     asyncio.run(DBConnection().close_db())
     colorama.deinit()
