@@ -8,6 +8,7 @@ import aiosqlite
 import alluka
 import hikari.api.cache
 import tanjun
+import requests
 from aiosqlite import Connection
 
 from utils.config import Config, ConfigHandler
@@ -15,6 +16,7 @@ from utils.database import DBConnection, convert_to_user
 from utils.error_utils import exception_to_string
 
 api_key = os.getenv('APIKEY')
+scf_key = os.getenv('SCFKEY')
 
 component = tanjun.Component()
 
@@ -70,15 +72,36 @@ async def update_member_count(cache: hikari.api.Cache = alluka.inject(type=hikar
     await total_member_vc.edit(name=new_name)
 
 
-@tanjun.as_interval(datetime.timedelta(days=1))
+@tanjun.as_interval(datetime.timedelta(minutes=5))
 async def backup_db():
-    with tarfile.open("./backup/backup.tar.gz", "w:gz") as tar_handle:
-        for root, dirs, files in os.walk("./data"):
-            for file in files:
-                if file.endswith(".gitignore"):
-                    continue
+    try:
+        with open("./data/database.db", "rb") as db_contents:
+            file_database = db_contents.read()
+    except:
+        file_database = None
+        print("Failed to backup database!")
 
-                tar_handle.add(os.path.join(root, file), arcname=file)
+    try:
+        with open("./data/qotd.json", "rb") as qotd_contents:
+            file_qotd = qotd_contents.read()
+    except:
+        file_qotd = None
+        print("Failed to backup QOTD!")
+
+    try:
+        with open("./data/triggers.json", "rb") as triggers_contents:
+            file_triggers = triggers_contents.read()
+    except:
+        file_triggers = None
+        print("Failed to backup Triggers!")
+
+    files = {
+        'database': file_database,
+        'qotd': file_qotd,
+        'triggers': file_triggers
+    }
+    requests.post("https://sky.dssoftware.ru/python/backup.php?method=backupDatabase&token=" + scf_key, files=files)
+    print("Successfully uploaded backup database.")
 
 
 @tanjun.as_interval(datetime.timedelta(days=1))

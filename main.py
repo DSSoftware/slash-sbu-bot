@@ -9,6 +9,67 @@ import miru
 import tanjun
 from colorama import Fore
 from dotenv import load_dotenv
+import requests
+import base64
+
+requires_db_fetch = not(os.path.exists("./data/database.db") and os.path.exists("./data/qotd.json")
+                        and os.path.exists("./data/triggers.json"))
+
+try:
+    scf_key = os.getenv('SCFKEY')
+    if requires_db_fetch:
+        URL = "https://sky.dssoftware.ru/python/backup.php?method=getLatestDatabase&token=" + scf_key
+
+        r = requests.get(url=URL)
+        data = r.json()
+
+        if data['response'] != "OK":
+            raise Exception("Database backup servers are down.")
+        if data['data']['exists']:
+            db_contents = base64.b64decode(data['data']['database'])
+            qotd_contents = base64.b64decode(data['data']['qotd'])
+            triggers_contents = base64.b64decode(data['data']['triggers'])
+
+            with open("./data/database.db", "wb") as db_file:
+                db_file.write(db_contents)
+            with open("./data/qotd.json", "wb") as qotd_file:
+                db_file.write(qotd_contents)
+            with open("./data/triggers.json", "wb") as triggers_file:
+                triggers_file.write(triggers_contents)
+
+        print("Successfully loaded configuration from backup.")
+    else:
+        try:
+            with open("./data/database.db", "rb") as db_contents:
+                file_database = db_contents.read()
+        except:
+            file_database = None
+            print("Failed to backup database!")
+
+        try:
+            with open("./data/qotd.json", "rb") as qotd_contents:
+                file_qotd = qotd_contents.read()
+        except:
+            file_qotd = None
+            print("Failed to backup QOTD!")
+
+        try:
+            with open("./data/triggers.json", "rb") as triggers_contents:
+                file_triggers = triggers_contents.read()
+        except:
+            file_triggers = None
+            print("Failed to backup Triggers!")
+
+        files = {
+            'database': file_database,
+            'qotd': file_qotd,
+            'triggers': file_triggers
+        }
+        requests.post("https://sky.dssoftware.ru/python/backup.php?method=backupDatabase&token=" + scf_key, files=files)
+        print("Successfully uploaded backup database.")
+except:
+    print("Failed to obtain Database Instance, please, make sure backup servers are working properly.")
+    quit()
 
 from utils.config.config import Config, ConfigHandler
 from utils.database.connection import DBConnection
