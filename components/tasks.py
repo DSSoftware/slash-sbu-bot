@@ -60,7 +60,7 @@ async def update_member_count(cache: hikari.api.Cache = alluka.inject(type=hikar
 
     total_member_vc = cache.get_guild(config['server_id']).get_channel(
         config['tasks']['total_members_channel_id'])
-    new_name = "Guild members: " + str(total_members)
+    new_name = "Guild Members: " + str(total_members)
 
     if total_member_vc is None:
         await cache.get_guild(config['server_id']) \
